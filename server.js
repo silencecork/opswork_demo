@@ -46,20 +46,32 @@ connection.connect(function(err)
 });
 
 var add_comment = function(comment) {
-    var comments = get_comments();
-    comments.push({"date": new Date(), "text": comment});
-    fs.writeFileSync('./comments.json', JSON.stringify(comments));
+    // var comments = get_comments();
+    // comments.push({"date": new Date(), "text": comment});
+    // fs.writeFileSync('./comments.json', JSON.stringify(comments));
+    var comment = {"date": new Date().toISOString(), "text": comment};
+    connection.query('INSERT INTO comment SET ?', comment, function(err, result) {
+      return;
+    });
 };
 
 var get_comments = function() {
-    var comments;
-    if (fs.existsSync('./comments.json')) {
-        comments = fs.readFileSync('./comments.json');
-        comments = JSON.parse(comments);
-    } else {
-        comments = [];
-    }
-    return comments;
+
+    connection.query('SELECT * FROM comment', function(err, rows, fields) {
+      if (err) {
+        return [];
+      }
+      return rows;
+    });
+
+    // var comments;
+    // if (fs.existsSync('./comments.json')) {
+    //     comments = fs.readFileSync('./comments.json');
+    //     comments = JSON.parse(comments);
+    // } else {
+    //     comments = [];
+    // }
+    // return comments;
 };
 
 app.use(function log (req, res, next) {
