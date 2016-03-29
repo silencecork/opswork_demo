@@ -19,6 +19,31 @@ var path = require('path');
 var os = require('os');
 var bodyParser = require('body-parser');
 var fs = require('fs');
+var dbconfig = require('opsworks');
+
+app.locals.hostname = dbconfig.db['host'];
+app.locals.username = dbconfig.db['username'];
+app.locals.password = dbconfig.db['password'];
+app.locals.port = dbconfig.db['port'];
+app.locals.database = dbconfig.db['database'];
+app.locals.connectionerror = 'successful';
+app.locals.databases = '';
+
+var connection = mysql.createConnection({
+    host: dbconfig.db['host'],
+    user: dbconfig.db['username'],
+    password: dbconfig.db['password'],
+    port: dbconfig.db['port'],
+    database: dbconfig.db['database']
+});
+
+connection.connect(function(err)
+{
+    if (err) {
+        app.locals.connectionerror = err.stack;
+        return;
+    }
+});
 
 var add_comment = function(comment) {
     var comments = get_comments();
