@@ -67,6 +67,6 @@ app.post('/', function(req, res) {
     res.redirect("/#form-section");
 });
 
-var server = app.listen(process.env.PORT || 3000, function() {
+var server = app.listen(80, function() {
     console.log('Listening on %s', process.env.PORT);
 });
