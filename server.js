@@ -19,7 +19,8 @@ var path = require('path');
 var os = require('os');
 var bodyParser = require('body-parser');
 var fs = require('fs');
-var dbconfig = require('opsworks');
+var dbconfig = require('./opsworks');
+var mysql = require('mysql');
 
 app.locals.hostname = dbconfig.db['host'];
 app.locals.username = dbconfig.db['username'];
@@ -43,35 +44,25 @@ connection.connect(function(err)
         app.locals.connectionerror = err.stack;
         return;
     }
+    console.log('connect to database');
 });
 
-var add_comment = function(comment) {
-    // var comments = get_comments();
-    // comments.push({"date": new Date(), "text": comment});
-    // fs.writeFileSync('./comments.json', JSON.stringify(comments));
+var add_comment = function(comment, cb) {
+    console.log('add_comment');
     var comment = {"date": new Date().toISOString(), "text": comment};
     connection.query('INSERT INTO comment SET ?', comment, function(err, result) {
-      return;
+      return cb(err, result);
     });
 };
 
-var get_comments = function() {
-
-    connection.query('SELECT * FROM comment', function(err, rows, fields) {
+var get_comments = function(cb) {
+    console.log('get_comments');
+    return connection.query('SELECT * FROM comment', function(err, rows, fields) {
       if (err) {
-        return [];
+        return cb(err);
       }
-      return rows;
-    });
-
-    // var comments;
-    // if (fs.existsSync('./comments.json')) {
-    //     comments = fs.readFileSync('./comments.json');
-    //     comments = JSON.parse(comments);
-    // } else {
-    //     comments = [];
-    // }
-    // return comments;
+      return cb(null, (rows) ? rows : []);
+    });  
 };
 
 app.use(function log (req, res, next) {
@@ -83,25 +74,34 @@ app.use(bodyParser.urlencoded({ extended: false }))
 
 app.set('view engine', 'jade');
 app.get('/', function(req, res) {
-    var comments = get_comments();
-    res.render("index",
+    var comments = get_comments(function(err, data) {
+      if (err) {
+        console.log(err);
+      } else {
+        res.render("index",
                { agent: req.headers['user-agent'],
                  hostname: os.hostname(),
                  os: os.type(),
                  nodeversion: process.version,
                  time: new Date(),
                  admin: (process.env.APP_ADMIN_EMAIL || "justin@gomaji.com" ),
-                 comments: get_comments()
-               });
+                 comments: data
+               });    
+      }
+    });
 });
 
 app.post('/', function(req, res) {
     var comment = req.body.comment;
     if (comment) {
-        add_comment(comment);
         console.log("Got comment: " + comment);
+        add_comment(comment, function(err, data) {
+          if (err) {
+            console.log(err);
+          }
+          res.redirect("/#form-section");
+        });
     }
-    res.redirect("/#form-section");
 });
 
 var server = app.listen(process.env.PORT || 3000, function() {
